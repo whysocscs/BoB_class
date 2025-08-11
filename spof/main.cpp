@@ -23,6 +23,8 @@ int main(int argc, char *argv[]){
     makecollet(collete,pcap, argc,argv, name); //argv 받은 값들 배열로 구조체 배열로 만들어서 활용하기
     infect(collete, pcap, (argc - 2) / 2, name); // 시작 1회
 
+    //while문으로 돌리는 중인데 주기적으로 재감염을 시도하고 싶었습니다. 그러던 중 
+    // 도저히 저의 방식으로는 구현이 안되어서 gpt를 사용하였습니다.
     size_t cnt = 0;
     struct timespec last_poison;
     clock_gettime(CLOCK_MONOTONIC, &last_poison);
