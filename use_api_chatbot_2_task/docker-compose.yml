@@ -1,0 +1,24 @@
+version: "3.3"
+services:
+  mariadb:
+    image: mariadb:11.02
+    ports:
+      - 3306:3306
+  volumes:
+    - bob-mariadb-data:/var/lib/mysql
+  environment:
+    MYSQL_ROOT_PASSWORD: password
+  api:
+    image: <>
+    ports:
+      - 80:8080
+    environment:
+      DB_PASSWORD: password
+      LOG_LVL: debug
+      PYTHONUNBUFFERED: 1
+depends_on:
+  - mariadb
+command:
+  sh -c "./start.sh"
+volumes:
+  bob-mariadb-data:
