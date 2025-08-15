@@ -1,5 +1,9 @@
 # BoB_class
 
+https://www.youtube.com/watch?v=SnA8TuHHR3g
+tcp 과제 링크입니다
+
+
 https://youtu.be/FJQfmuY0EjE
 arp_task 링크 입니다! 
 
