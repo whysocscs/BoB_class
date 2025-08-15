@@ -74,7 +74,6 @@ static void recvThread(int sd) {
         if (param.brod) 
             broadcast(buf, static_cast<size_t>(r));
         else if (param.echo) {
-            // 에코: "server: " 접두어
             std::string msg = std::string("server: ") + std::string(buf, r);
             if (send(sd, msg.data(), msg.size()) <= 0) break;
         }
