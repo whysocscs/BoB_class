@@ -14,8 +14,6 @@ app = FastAPI() # fastapi app 생성
 
 
 LOG = conf['log']
-api_key = "c845a2530fc7b0624d4982d2dc26a78011d083ccf7fe4596972882114d2fbea7"    
-
 
 
 @app.get("/")
